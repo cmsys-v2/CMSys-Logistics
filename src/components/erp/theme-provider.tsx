@@ -27,7 +27,10 @@ function ThemeProfileInitializer() {
       const stored = localStorage.getItem("ce-theme-profile");
       if (stored) {
         const p = JSON.parse(stored);
-        applyProfileInline(p);
+        // Migrate legacy profile names that no longer exist in the preset list
+        const known = ["Deep Command", "Trincomalee Gold", "Harbour Violet", "Emerald Teal", "Cyber Neon", "Sunset Flame", "Royal Purple", "Rose Crimson", "Gold Amber", "Harbour Daylight", "Brass Daylight", "Cyber Indigo", "Ocean Blue"];
+        const isKnown = known.some((n) => String(p?.name || "").includes(n));
+        applyProfileInline(isKnown ? p : DEFAULT_PROFILE_AS_ANY);
       } else {
         applyProfileInline(DEFAULT_PROFILE_AS_ANY);
       }
@@ -51,5 +54,4 @@ function applyProfileInline(p: { mode: string; primary: string; accent: string }
   root.style.setProperty("--ring", p.primary);
   root.style.setProperty("--chart-1", p.primary);
   root.style.setProperty("--chart-4", p.accent);
-  root.style.setProperty("--chart-3", p.accent);
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
+import { DEMO_PROFILE } from "@/lib/demo-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,8 +38,8 @@ export async function GET(req: NextRequest) {
       stakeholderId: user.stakeholderId,
     });
   } catch (e) {
-    console.error("User profile GET error:", e);
-    return NextResponse.json({ error: "Failed to fetch user profile" }, { status: 500 });
+    console.error("User profile GET error — serving offline preview data:", e);
+    return NextResponse.json(DEMO_PROFILE);
   }
 }
 

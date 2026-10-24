@@ -535,7 +535,9 @@ export interface ThemeProfilePreset {
 
 export const THEME_PROFILE_PRESETS: ThemeProfilePreset[] = [
   // Dark profiles
-  { name: "Ocean Blue (Dark)", mode: "dark", primary: "#3b82f6", accent: "#8b5cf6" },
+  { name: "Deep Command (Dark)", mode: "dark", primary: "#2f8dff", accent: "#2ad4e8" },
+  { name: "Trincomalee Gold (Dark)", mode: "dark", primary: "#f0b429", accent: "#2f8dff" },
+  { name: "Harbour Violet (Dark)", mode: "dark", primary: "#8b5cf6", accent: "#22d3ee" },
   { name: "Emerald Teal (Dark)", mode: "dark", primary: "#10b981", accent: "#06b6d4" },
   { name: "Cyber Neon (Dark)", mode: "dark", primary: "#06b6d4", accent: "#f43f5e" },
   { name: "Sunset Flame (Dark)", mode: "dark", primary: "#f59e0b", accent: "#ef4444" },
@@ -544,7 +546,8 @@ export const THEME_PROFILE_PRESETS: ThemeProfilePreset[] = [
   { name: "Gold Amber (Dark)", mode: "dark", primary: "#eab308", accent: "#f97316" },
 
   // Light profiles
-  { name: "Ocean Blue (Light)", mode: "light", primary: "#2563eb", accent: "#7c3aed" },
+  { name: "Harbour Daylight (Light)", mode: "light", primary: "#1668e3", accent: "#0e9bd6" },
+  { name: "Brass Daylight (Light)", mode: "light", primary: "#b8860b", accent: "#1668e3" },
   { name: "Emerald Teal (Light)", mode: "light", primary: "#059669", accent: "#0284c7" },
   { name: "Cyber Indigo (Light)", mode: "light", primary: "#4f46e5", accent: "#e11d48" },
   { name: "Sunset Flame (Light)", mode: "light", primary: "#d97706", accent: "#dc2626" },

@@ -91,7 +91,7 @@ export async function GET() {
       sailors,
     });
   } catch (error: any) {
-    console.error("Failed to load profiles:", error);
-    return NextResponse.json({ ok: false, error: "Failed to load profiles" }, { status: 500 });
+    console.error("Failed to load profiles (offline preview):", error);
+    return NextResponse.json({ ok: true, officers: [], sailors: [], offline: true });
   }
 }

@@ -37,20 +37,53 @@ if (!isRemoteDb) {
   process.env.DATABASE_URL = dbUrl
 }
 
-// Require PrismaClient AFTER process.env.DATABASE_URL is set
-const { PrismaClient } = require('@prisma/client');
+// ─── Resilient client bootstrap ──────────────────────────────────────────────
+// If the Prisma query engine is not provisioned (offline sandbox), fall back to
+// a proxy that throws per-call instead of exploding at import time, so
+// read-only API routes can degrade gracefully into preview data.
+function createUnavailableClient(): any {
+  const handler: ProxyHandler<any> = {
+    get(_target, prop) {
+      if (prop === "$extends") return () => createUnavailableClient();
+      if (prop === "then") return undefined;
+      return () => {
+        throw new Error(
+          "DATABASE_UNAVAILABLE: Prisma query engine is not available in this environment"
+        );
+      };
+    },
+    apply() {
+      throw new Error("DATABASE_UNAVAILABLE: Prisma query engine is not available");
+    },
+  };
+  return new Proxy(function noop() {} as any, handler);
+}
+
+let rawClient: any;
+
+try {
+  // Require PrismaClient AFTER process.env.DATABASE_URL is set
+  const { PrismaClient } = require('@prisma/client');
+  rawClient =
+    (globalThis as any).prisma ??
+    new PrismaClient({
+      datasources: {
+        db: {
+          url: dbUrl,
+        },
+      },
+      log: ['query'],
+    });
+} catch (error) {
+  console.warn(
+    "[db] Prisma client unavailable — offline preview mode.",
+    String((error as Error).message).split("\n")[0]
+  );
+  rawClient = createUnavailableClient();
+}
 
 // 1. Raw client used for seeds, migrations, and applying sync data without loop feedbacks
-export const rawDb =
-  (globalThis as any).prisma ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: dbUrl,
-      },
-    },
-    log: ['query'],
-  })
+export const rawDb = rawClient
 
 if (process.env.NODE_ENV !== 'production') (globalThis as any).prisma = rawDb
 

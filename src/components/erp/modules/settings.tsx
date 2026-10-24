@@ -1699,7 +1699,7 @@ function RolesAccessTab() {
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             The permission matrix defines what each role can do across every
-            module of the CE Logistic Panel. Admins can add new modules, edit
+            module of CMSys. Admins can add new modules, edit
             permissions, or remove custom modules. Changes are stored locally
             (in this browser) and can be reset to defaults anytime.
           </p>

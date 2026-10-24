@@ -1,23 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useEffect, useMemo } from "react";
 import {
   Eye,
   EyeOff,
   Search,
-  Check,
-  ChevronDown,
   Loader2,
   AlertCircle,
   KeyRound,
   ShieldCheck,
   UserCheck,
-  Building2,
   Lock,
+  Waves,
+  Radar,
+  Anchor,
+  ArrowRight,
+  Fingerprint,
+  CircleDot,
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/use-fetch";
+import { CrestMark } from "@/components/brand/cmsys-brand";
+import { BackgroundFX, AnimatedNumber } from "@/components/erp/fx";
+import { cn } from "@/lib/utils";
 
 interface LoginWallProps {
   onLoginSuccess: () => void;
@@ -170,6 +176,7 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
   const [sailors, setSailors] = useState<SailorProfile[]>(DEFAULT_SAILORS);
   const [selectedOfficerId, setSelectedOfficerId] = useState<string>("");
   const [selectedSailor, setSelectedSailor] = useState<SailorProfile | null>(null);
+  const [officerQuery, setOfficerQuery] = useState<string>("");
   const [sailorSearch, setSailorSearch] = useState<string>("");
   const [showSailorDropdown, setShowSailorDropdown] = useState<boolean>(false);
   const [password, setPassword] = useState<string>("1234");
@@ -180,7 +187,6 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load profiles from backend API
   useEffect(() => {
     fetch("/api/auth/profiles")
       .then((res) => res.json())
@@ -191,11 +197,23 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
         }
       })
       .catch(() => {
-        // Use defaults if fetch fails
+        /* defaults remain */
       });
   }, []);
 
   const selectedOfficer = officers.find((o) => o.id === selectedOfficerId);
+
+  const filteredOfficers = useMemo(() => {
+    const q = officerQuery.trim().toLowerCase();
+    if (!q) return officers;
+    return officers.filter(
+      (o) =>
+        o.name.toLowerCase().includes(q) ||
+        (o.serviceNo || "").toLowerCase().includes(q) ||
+        (o.role || "").toLowerCase().includes(q) ||
+        (o.zone || "").toLowerCase().includes(q)
+    );
+  }, [officers, officerQuery]);
 
   const filteredSailors = sailors.filter(
     (s) =>
@@ -206,9 +224,7 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
   const handleSelectOfficer = (id: string) => {
     setSelectedOfficerId(id);
     setErrorMsg(null);
-    if (!password) {
-      setPassword("1234");
-    }
+    if (!password) setPassword("1234");
   };
 
   const handleSelectSailor = (sailor: SailorProfile) => {
@@ -216,9 +232,7 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
     setSailorSearch(`${sailor.serviceNo} - ${sailor.name}`);
     setShowSailorDropdown(false);
     setErrorMsg(null);
-    if (!password) {
-      setPassword("1234");
-    }
+    if (!password) setPassword("1234");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -230,14 +244,14 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
 
     if (mode === "OIC") {
       if (!selectedOfficerId) {
-        setErrorMsg("Please select a Command / Zone profile to continue!");
+        setErrorMsg("Select a command / zone profile to continue.");
         return;
       }
       targetUsername = selectedOfficer?.username || selectedOfficer?.name || "";
       displayName = selectedOfficer?.name || targetUsername;
     } else {
       if (!selectedSailor) {
-        setErrorMsg("Please search and select your Service Number / Name!");
+        setErrorMsg("Search and select your service number or name.");
         return;
       }
       targetUsername = selectedSailor.serviceNo || selectedSailor.name;
@@ -245,37 +259,29 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
     }
 
     if (!password.trim()) {
-      setErrorMsg("Please enter password / PIN (Default: 1234)");
+      setErrorMsg("Enter your access PIN (default 1234).");
       return;
     }
 
     setLoading(true);
-
     try {
       const res = await apiRequest("/api/auth/login", "POST", {
         username: targetUsername,
         password: password.trim(),
       });
-
       setLoading(false);
-
       if (res.ok) {
         toast({
-          title: "Access Granted ⚓",
-          description: `Welcome to Naval Portal, ${displayName}!`,
+          title: "Access granted",
+          description: `Welcome aboard, ${displayName}.`,
         });
         onLoginSuccess();
       } else {
-        setErrorMsg(res.error || "Authentication failed. Try PIN: 1234");
-        toast({
-          title: "Authentication Failed",
-          description: res.error || "Please verify your PIN / password.",
-          variant: "destructive",
-        });
+        setErrorMsg(res.error || "Authentication failed. Default PIN is 1234.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      setErrorMsg(err.message || "Connection error occurred.");
+      setErrorMsg((err as Error).message || "Connection error occurred.");
     }
   };
 
@@ -290,328 +296,473 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
   };
 
   return (
-    <div className="fixed inset-0 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 overflow-y-auto z-50 selection:bg-teal-500/30 selection:text-teal-200">
-      {/* Soft background ambient lighting glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-teal-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative flex min-h-screen items-stretch overflow-hidden bg-background">
+      <BackgroundFX dense />
 
-      {/* Main Login Card */}
-      <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl text-center space-y-4 relative z-10 text-slate-100 my-auto">
-        {/* Crest and Title */}
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center filter drop-shadow-[0_10px_25px_rgba(20,184,166,0.45)]">
-            <img
-              src="/logo.png"
-              alt="Navy Crest"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                // Fallback to logo-crest.png or logo.svg if needed
-                (e.target as HTMLImageElement).src = "/logo-crest.png";
-              }}
+      {/* ══════════════ LEFT — brand showcase ══════════════ */}
+      <section className="relative hidden w-[54%] flex-col justify-between overflow-hidden border-r border-border/50 p-10 xl:flex 2xl:p-14">
+        {/* radar rings */}
+        <div aria-hidden className="pointer-events-none absolute -left-40 bottom-[-18%] h-[620px] w-[620px]">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="absolute inset-0 rounded-full border border-primary/15"
+              style={{ transform: `scale(${1 - i * 0.2})` }}
             />
+          ))}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background:
+                "conic-gradient(from 0deg, color-mix(in srgb, var(--primary) 26%, transparent), transparent 32%, transparent 100%)",
+              animation: "radarSweep 9s linear infinite",
+              maskImage: "radial-gradient(circle, #000 30%, transparent 70%)",
+              WebkitMaskImage: "radial-gradient(circle, #000 30%, transparent 70%)",
+            }}
+          />
+        </div>
+
+        {/* top meta */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <CrestMark size={38} />
+            <div className="leading-none">
+              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
+                Sri Lanka Navy
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--gold)]">
+                Civil Engineering Branch
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-white tracking-wide leading-snug">
-              Civil Engineering Management System
-            </h2>
-            <p className="text-xs text-teal-300 font-semibold flex items-center justify-center gap-1.5 mt-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block shadow-sm shadow-emerald-400/80" />
-              Sri Lanka Navy • Eastern Command Hub
-            </p>
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-400">
+            Secure channel
+          </span>
+        </div>
+
+        {/* hero */}
+        <div className="relative z-10 max-w-xl">
+          <div className="mb-7 flex items-center gap-2">
+            <span className="h-px w-9 bg-gradient-to-r from-transparent to-[var(--gold)]" />
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.34em] text-[var(--gold)]/90">
+              Logistics management system
+            </span>
+          </div>
+
+          <h1 className="flex items-baseline gap-2">
+            <span className="text-[86px] font-black leading-[0.86] tracking-[-0.06em] text-steel drop-shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+              CMS
+            </span>
+            <span className="text-[86px] font-black leading-[0.86] tracking-[-0.06em] text-gold drop-shadow-[0_12px_40px_rgba(240,180,41,0.25)]">
+              ys
+            </span>
+          </h1>
+
+          <p className="mt-4 text-[15px] font-bold uppercase tracking-[0.3em] text-foreground/90">
+            SLN Logistics
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="h-[3px] w-28 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--gold)]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--gold)]">
+              Trincomalee
+            </span>
+          </div>
+
+          <p className="mt-7 max-w-md text-[12.5px] leading-relaxed text-muted-foreground">
+            One command deck for vote allocations, procurement files, stores, rate contracts and
+            daily collection — engineered for the tempo of naval logistics operations.
+          </p>
+
+          {/* live metrics */}
+          <div className="mt-8 grid max-w-md grid-cols-3 gap-3">
+            {[
+              { label: "Modules online", value: 8, suffix: "/8" },
+              { label: "Avg. sync", value: 1.2, suffix: "s", decimals: 1 },
+              { label: "Uptime", value: 99.9, suffix: "%", decimals: 1 },
+            ].map((m) => (
+              <div
+                key={m.label}
+                className="rounded-xl border border-border/60 bg-card/40 px-3 py-2 backdrop-blur"
+              >
+                <p className="text-[8.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  {m.label}
+                </p>
+                <p className="mt-1 text-[17px] font-bold leading-none tabular-nums text-foreground">
+                  <AnimatedNumber
+                    value={m.value}
+                    format={(n) =>
+                      m.decimals ? n.toFixed(m.decimals) + m.suffix : Math.round(n) + m.suffix
+                    }
+                  />
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* feature chips */}
+          <div className="mt-7 flex flex-wrap gap-2">
+            {[
+              { icon: ShieldCheck, text: "Role-based access" },
+              { icon: Waves, text: "Realtime sync" },
+              { icon: Radar, text: "Live procurement radar" },
+            ].map((f) => (
+              <span
+                key={f.text}
+                className="flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/30 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"
+              >
+                <f.icon className="h-3 w-3 text-primary" />
+                {f.text}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-3.5 text-left pt-1">
-          {/* Mode Toggle Tab */}
-          <div className="flex border border-white/15 rounded-xl overflow-hidden p-0.5 bg-slate-950/60 shadow-inner">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("OIC");
-                setErrorMsg(null);
-              }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                mode === "OIC"
-                  ? "text-white bg-teal-600 shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <span>👔</span> Officer / In-Charge
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("SAILOR");
-                setErrorMsg(null);
-              }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                mode === "SAILOR"
-                  ? "text-white bg-teal-600 shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <span>⚓</span> Sailor Profile
-            </button>
+        {/* bottom meta */}
+        <div className="relative z-10 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
+          <span className="flex items-center gap-2">
+            <Anchor className="h-3 w-3" /> SLN Logistics · Eastern Command
+          </span>
+          <span>Security level 4 · Restricted</span>
+        </div>
+      </section>
+
+      {/* ══════════════ RIGHT — access panel ══════════════ */}
+      <section className="relative flex flex-1 items-center justify-center px-4 py-8 sm:px-8">
+        <div className="w-full max-w-[430px]">
+          {/* mobile brand */}
+          <div className="mb-6 flex flex-col items-center gap-3 xl:hidden">
+            <CrestMark size={64} />
+            <div className="flex items-baseline gap-1">
+              <span className="text-[26px] font-black tracking-[-0.05em] text-steel">CMS</span>
+              <span className="text-[26px] font-black tracking-[-0.05em] text-gold">ys</span>
+            </div>
+            <p className="text-[8.5px] font-bold uppercase tracking-[0.32em] text-muted-foreground">
+              SLN Logistics · Trincomalee
+            </p>
           </div>
 
-          {/* OIC Mode Content */}
-          {mode === "OIC" && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                  SELECT COMMAND / ZONE PROFILE <span className="text-rose-400">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowCredentialsGuide(!showCredentialsGuide)}
-                  className="text-[10px] font-bold text-teal-400 hover:text-teal-300 underline cursor-pointer flex items-center gap-1"
-                >
-                  <span>🔑</span> View All Profiles & PINs
-                </button>
-              </div>
+          <div className="panel hairline-top relative overflow-hidden p-5 sm:p-7">
+            {/* corner accents */}
+            <span className="pointer-events-none absolute left-0 top-0 h-14 w-14 rounded-tl-[1.1rem] border-l-2 border-t-2 border-[var(--gold)]/35" />
+            <span className="pointer-events-none absolute bottom-0 right-0 h-14 w-14 rounded-br-[1.1rem] border-b-2 border-r-2 border-primary/35" />
 
-              <div className="relative">
-                <select
-                  value={selectedOfficerId}
-                  onChange={(e) => handleSelectOfficer(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-slate-900/95 border border-white/20 text-white rounded-xl text-xs font-bold focus:outline-none focus:border-teal-400 cursor-pointer appearance-none pr-8"
-                >
-                  <option value="">-- Choose Profile --</option>
-                  <optgroup label="⭐ Command & Executive Profiles">
-                    {officers
-                      .filter((o) => o.group === "Command & Executive Profiles")
-                      .map((o) => (
-                        <option key={o.id} value={o.id}>
-                          ⭐ {o.name} ({o.serviceNo || o.role})
-                        </option>
-                      ))}
-                  </optgroup>
-                  <optgroup label="⚓ Maintenance Zone In-Charges">
-                    {officers
-                      .filter((o) => o.group === "Maintenance Zone In-Charges")
-                      .map((o) => (
-                        <option key={o.id} value={o.id}>
-                          ⚓ {o.name}
-                        </option>
-                      ))}
-                  </optgroup>
-                </select>
-                <ChevronDown className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-[17px] font-bold tracking-tight text-foreground">
+                  <Fingerprint className="h-4.5 w-4.5 text-primary" />
+                  Secure access
+                </h2>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                  Authenticate to open the command deck
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowCredentialsGuide(true)}
+                className="flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1.5 text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                <KeyRound className="h-3 w-3" /> Profiles
+              </button>
+            </div>
 
-              {/* Selected Profile Details Badge Card */}
-              {selectedOfficer && (
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-teal-500/40 text-xs space-y-1 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between text-teal-300 font-bold">
-                    <span>{selectedOfficer.name}</span>
-                    <span className="px-2 py-0.5 rounded bg-teal-900/80 text-[10px] text-teal-200 border border-teal-500/40">
-                      {selectedOfficer.role}
-                    </span>
+            {/* mode switch */}
+            <div className="relative mb-4 grid grid-cols-2 gap-1 rounded-xl border border-border/60 bg-secondary/40 p-1">
+              {(
+                [
+                  { id: "OIC" as const, label: "Officer / OIC", icon: UserCheck },
+                  { id: "SAILOR" as const, label: "Sailor", icon: Anchor },
+                ]
+              ).map((m) => {
+                const active = mode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setMode(m.id);
+                      setErrorMsg(null);
+                    }}
+                    className={cn(
+                      "relative flex items-center justify-center gap-1.5 rounded-lg py-2 text-[11.5px] font-bold transition-all duration-200",
+                      active
+                        ? "bg-gradient-to-b from-primary/25 to-primary/10 text-foreground shadow-sm ring-1 ring-primary/40"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <m.icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "opacity-60")} />
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-3.5">
+              {/* OIC picker */}
+              {mode === "OIC" && (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={officerQuery}
+                      onChange={(e) => setOfficerQuery(e.target.value)}
+                      placeholder="Search command, zone or service no…"
+                      className="h-10 w-full rounded-xl border border-border/70 bg-background/70 pl-9 pr-3 text-[11.5px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60"
+                    />
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Service No: {selectedOfficer.serviceNo || "-"}</span>
-                    <span className="text-amber-300 font-medium">
-                      Zone: {selectedOfficer.zone || "All"}
-                    </span>
+
+                  <div className="scrollbar-thin max-h-[168px] space-y-1.5 overflow-y-auto pr-0.5">
+                    {filteredOfficers.length === 0 && (
+                      <p className="py-4 text-center text-[11px] text-muted-foreground">
+                        No profile matches that search
+                      </p>
+                    )}
+                    {filteredOfficers.map((o) => {
+                      const active = selectedOfficerId === o.id;
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => handleSelectOfficer(o.id)}
+                          className={cn(
+                            "group flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all duration-150",
+                            active
+                              ? "border-primary/50 bg-primary/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                              : "border-border/50 bg-background/40 hover:border-primary/30 hover:bg-secondary/40"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[9.5px] font-bold",
+                              active
+                                ? "border-primary/50 bg-primary text-primary-foreground"
+                                : "border-border/60 bg-secondary/60 text-muted-foreground"
+                            )}
+                          >
+                            {active ? (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            ) : (
+                              o.name.replace(/^(Cdr\.|Lt\.|Capt\.|PO)\s+/i, "").slice(0, 2).toUpperCase()
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[11.5px] font-bold text-foreground">
+                              {o.name}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[9.5px] font-medium text-muted-foreground">
+                              {o.serviceNo || "—"} · {o.zone || "All"}
+                            </span>
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider",
+                              active
+                                ? "border-primary/40 bg-primary/15 text-primary"
+                                : "border-border/60 text-muted-foreground"
+                            )}
+                          >
+                            {o.role}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Sailor Mode Content */}
-          {mode === "SAILOR" && (
-            <div className="space-y-2 relative">
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                SEARCH SERVICE NO / NAME <span className="text-rose-400">*</span>
-              </label>
+              {/* Sailor picker */}
+              {mode === "SAILOR" && (
+                <div className="relative space-y-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={sailorSearch}
+                      placeholder="Service no or name…"
+                      onFocus={() => setShowSailorDropdown(true)}
+                      onChange={(e) => {
+                        setSailorSearch(e.target.value);
+                        setShowSailorDropdown(true);
+                      }}
+                      autoComplete="off"
+                      className="h-10 w-full rounded-xl border border-border/70 bg-background/70 px-3 pr-9 text-[11.5px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  </div>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  value={sailorSearch}
-                  placeholder="Type Service No or Name..."
-                  onFocus={() => setShowSailorDropdown(true)}
-                  onChange={(e) => {
-                    setSailorSearch(e.target.value);
-                    setShowSailorDropdown(true);
-                  }}
-                  autoComplete="off"
-                  className="w-full px-3.5 py-2.5 bg-slate-900/95 border border-white/20 text-white rounded-xl text-xs font-semibold focus:outline-none focus:border-teal-400"
-                />
-                <Search className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+                  {showSailorDropdown && (
+                    <div className="absolute inset-x-0 top-11 z-30 max-h-52 overflow-y-auto rounded-xl border border-border/70 bg-popover/95 p-1 shadow-2xl backdrop-blur-xl scrollbar-thin">
+                      {filteredSailors.length > 0 ? (
+                        filteredSailors.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleSelectSailor(s)}
+                            className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-primary/10"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-[11.5px] font-bold text-foreground">
+                                {s.serviceNo} · {s.name}
+                              </span>
+                              <span className="block truncate text-[9.5px] text-muted-foreground">
+                                {s.rate} · {s.department} · {s.zone}
+                              </span>
+                            </span>
+                            <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-4 text-center text-[11px] text-muted-foreground">
+                          No matching sailor found
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-              {/* Autocomplete Dropdown */}
-              {showSailorDropdown && (
-                <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto divide-y divide-slate-800 bg-slate-950 border border-white/20 rounded-xl shadow-2xl scrollbar-thin">
-                  {filteredSailors.length > 0 ? (
-                    filteredSailors.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => handleSelectSailor(s)}
-                        className="w-full text-left p-2.5 hover:bg-teal-950/60 transition-colors flex items-center justify-between text-xs cursor-pointer group"
-                      >
-                        <div>
-                          <div className="font-bold text-slate-200 group-hover:text-teal-300">
-                            {s.serviceNo} - {s.name}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {s.rate} • {s.department} • {s.zone}
-                          </div>
-                        </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-teal-300 border border-slate-700">
-                          Select
+                  {selectedSailor && (
+                    <div className="rounded-xl border border-primary/40 bg-primary/10 p-2.5">
+                      <div className="flex items-center justify-between text-[11.5px] font-bold text-foreground">
+                        <span className="truncate">{selectedSailor.name}</span>
+                        <span className="rounded-full border border-primary/40 bg-primary/15 px-1.5 py-0.5 text-[8.5px] uppercase tracking-wider text-primary">
+                          {selectedSailor.rate}
                         </span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-3 text-center text-xs text-slate-400">
-                      No matching sailor found
+                      </div>
+                      <p className="mt-1 flex items-center justify-between text-[9.5px] text-muted-foreground">
+                        <span>{selectedSailor.serviceNo}</span>
+                        <span className="text-[var(--gold)]">{selectedSailor.zone}</span>
+                      </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Selected Sailor Details Card */}
-              {selectedSailor && (
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-teal-500/40 text-xs space-y-1 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between text-teal-300 font-bold">
-                    <span>{selectedSailor.name}</span>
-                    <span className="px-2 py-0.5 rounded bg-teal-900/80 text-[10px] text-teal-200 border border-teal-500/40">
-                      {selectedSailor.rate}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Service No: {selectedSailor.serviceNo}</span>
-                    <span className="text-amber-300 font-medium">{selectedSailor.zone}</span>
-                  </div>
+              {/* PIN */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    <Lock className="h-3 w-3 text-primary" /> Access PIN
+                  </label>
+                  <span className="text-[9.5px] font-medium italic text-muted-foreground/80">
+                    default <strong className="font-mono font-bold text-[var(--gold)]">1234</strong>
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••"
+                    className="h-11 w-full rounded-xl border border-border/70 bg-background/70 pl-3.5 pr-11 font-mono text-[14px] font-bold tracking-[0.4em] text-foreground outline-none transition-colors placeholder:tracking-[0.3em] placeholder:text-muted-foreground/60 focus:border-primary/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
+                    title="Show / hide PIN"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="flex items-start gap-2 rounded-xl border border-destructive/35 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{errorMsg}</span>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Password Input with Show/Hide Toggle */}
-          <div className="space-y-1 pt-0.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                PASSWORD / PIN <span className="text-rose-400">*</span>
-              </label>
-              <span className="text-[10px] text-slate-400 italic">
-                Default PIN: <strong className="text-amber-300 font-mono">1234</strong>
-              </span>
-            </div>
-            <div className="relative flex items-center">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter password / PIN (Default: 1234)"
-                className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900/95 border border-white/20 text-white rounded-xl text-xs font-bold focus:outline-none focus:border-teal-400 tracking-wider"
-              />
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="flex cursor-pointer select-none items-center gap-2 text-[10.5px] font-medium text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-border/70 bg-background accent-[var(--primary)]"
+                  />
+                  Keep me signed in
+                </label>
+                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400/80">
+                  <CircleDot className="h-3 w-3" /> encrypted
+                </span>
+              </div>
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 text-slate-400 hover:text-white p-1 text-sm cursor-pointer transition-colors"
-                title="Show / Hide Password"
+                type="submit"
+                disabled={loading}
+                className="group relative flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-primary via-primary to-[var(--accent)] text-[11.5px] font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_16px_36px_-16px_var(--glow-primary)] transition-all duration-200 hover:brightness-110 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-70"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
+                  </>
+                ) : (
+                  <>
+                    Enter command deck <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
-            </div>
+            </form>
           </div>
 
-          {/* Error Banner */}
-          {errorMsg && (
-            <div className="p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-300 flex items-center gap-2 animate-shake">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+          <p className="mt-4 text-center text-[9px] font-semibold uppercase tracking-[0.24em] text-muted-foreground/50">
+            Authorised personnel only · Activity is logged
+          </p>
+        </div>
+      </section>
 
-          {/* Keep Me Logged In Checkbox */}
-          <div className="flex items-center justify-between text-xs text-slate-300 pt-0.5">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-teal-600 bg-slate-900 border-white/20 focus:ring-teal-500 cursor-pointer accent-teal-500"
-              />
-              <span className="text-xs text-slate-300 font-medium">
-                Keep me logged in (Stay logged in)
-              </span>
-            </label>
-          </div>
-
-          {/* Login Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-600 hover:from-teal-500 hover:to-cyan-400 text-white font-black rounded-xl shadow-lg transform transition-all active:scale-95 text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 disabled:opacity-75 disabled:pointer-events-none"
+      {/* ══════════════ Credentials dialog ══════════════ */}
+      {showCredentialsGuide && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowCredentialsGuide(false)}
+        >
+          <div
+            className="panel w-full max-w-md overflow-hidden p-0"
+            onClick={(e) => e.stopPropagation()}
           >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Verifying Credentials...
-              </>
-            ) : (
-              <>
-                <span>🔓</span> ACCESS NAVAL PORTAL ➔
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Expandable Credentials Guide Drawer */}
-        {showCredentialsGuide && (
-          <div className="text-left p-3.5 rounded-2xl bg-slate-950/95 border border-teal-500/40 text-xs space-y-2 max-h-60 overflow-y-auto animate-in fade-in duration-200">
-            <div className="flex items-center justify-between text-teal-300 font-bold border-b border-white/10 pb-1.5">
-              <span className="flex items-center gap-1.5 text-xs">
-                🔑 All Available Profiles & Access Roles
-              </span>
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-[12.5px] font-bold text-foreground">Demo profiles</p>
+                  <p className="text-[9.5px] font-medium text-muted-foreground">
+                    All profiles use PIN 1234
+                  </p>
+                </div>
+              </div>
               <button
-                type="button"
                 onClick={() => setShowCredentialsGuide(false)}
-                className="text-slate-400 hover:text-white text-xs px-1 cursor-pointer"
+                className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
-                ✕
+                Close
               </button>
             </div>
-            <div className="space-y-1.5 text-[11px] text-slate-300 divide-y divide-slate-800">
+            <div className="scrollbar-thin max-h-[60vh] overflow-y-auto p-2">
               {officers.map((o) => (
                 <div
                   key={o.id}
-                  className="pt-1.5 first:pt-0 flex items-center justify-between hover:bg-teal-950/40 p-1 rounded"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-secondary/40"
                 >
-                  <div>
-                    <span className="font-bold text-white">{o.name}</span>
-                    <span className="text-slate-400 ml-1.5">
-                      ({o.role} • {o.department})
-                    </span>
-                    <div className="text-[10px] text-amber-300 font-mono">PIN: 1234</div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11.5px] font-bold text-foreground">{o.name}</p>
+                    <p className="truncate text-[9.5px] text-muted-foreground">
+                      {o.role} · {o.department} · PIN 1234
+                    </p>
                   </div>
                   <button
-                    type="button"
                     onClick={() => selectPresetAndFill(o.username)}
-                    className="px-2 py-1 rounded bg-teal-600/80 hover:bg-teal-500 text-white font-bold text-[10px] transition-colors cursor-pointer"
+                    className="shrink-0 rounded-lg bg-primary/15 px-2 py-1 text-[9.5px] font-bold uppercase tracking-wider text-primary hover:bg-primary/25"
                   >
-                    Select
+                    Use
                   </button>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Naval System Footer */}
-      <footer className="absolute bottom-3 text-center text-xs text-slate-500 flex items-center gap-2 select-none">
-        <Building2 className="h-3.5 w-3.5 text-teal-500/70" />
-        <span>Dockyard ERP Logistics & Operations Panel • Security Level 4</span>
-      </footer>
+        </div>
+      )}
     </div>
   );
 }

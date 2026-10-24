@@ -2172,7 +2172,7 @@ function PrintReceiptDialog({
           {/* Receipt header */}
           <div className="border-b border-border pb-3">
             <h2 className="text-lg font-bold text-foreground">
-              CE Logistic Panel — Dockyard
+              CMSys — SLN Logistics
             </h2>
             <p className="text-sm text-muted-foreground">
               Part Supply Delivery Receipt

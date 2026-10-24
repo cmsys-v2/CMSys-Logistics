@@ -1,21 +1,19 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { NAV_ITEMS, ModuleId } from "./nav";
 import { cn } from "@/lib/utils";
 import {
-  Anchor,
-  Menu,
+  Search,
   Bell,
   ChevronDown,
-  Sun,
-  Moon,
+  ChevronRight,
   Palette,
   Check,
   User,
   KeyRound,
-  ShieldCheck,
   CheckCircle2,
-  Trash2,
   Mail,
   Building2,
   Loader2,
@@ -24,16 +22,22 @@ import {
   FileText,
   ShieldAlert,
   Boxes,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  Menu,
+  Command as CommandIcon,
+  Radio,
+  Sparkles,
+  ArrowUpRight,
+  Sun,
+  Moon,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +62,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useFetch, apiRequest } from "@/lib/use-fetch";
 import { formatCurrency, THEME_PROFILE_PRESETS } from "@/lib/constants";
 import { useThemeProfile } from "@/lib/use-theme-profile";
+import { CrestMark, Wordmark } from "@/components/brand/cmsys-brand";
+import { BackgroundFX, Sparkline } from "./fx";
+
+/* ══════════════════════════════════════════════════════════════════════════ */
 
 interface Stats {
   net: number;
@@ -71,12 +79,6 @@ interface AppShellProps {
   onNavigate: (id: ModuleId) => void;
   stats: Stats | null;
   children: React.ReactNode;
-}
-
-interface SidebarContentProps {
-  active: ModuleId;
-  onNavigate: (id: ModuleId) => void;
-  onItemClick?: () => void;
 }
 
 interface AppNotification {
@@ -97,127 +99,337 @@ interface UserProfileData {
   department: string | null;
 }
 
-function SidebarContent({ active, onNavigate, onItemClick }: SidebarContentProps) {
+const NAV_GROUPS: { label: string; ids: ModuleId[] }[] = [
+  { label: "Command", ids: ["dashboard", "projects"] },
+  { label: "Operations", ids: ["procurement", "stores", "rate-finder"] },
+  { label: "Logistics", ids: ["collection", "stakeholders"] },
+  { label: "System", ids: ["settings"] },
+];
+
+const compactMoney = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `Rs ${(n / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `Rs ${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `Rs ${(n / 1_000).toFixed(0)}K`;
+  return `Rs ${Math.round(n)}`;
+};
+
+/* ══════════════════════════════ SIDEBAR ═══════════════════════════════════ */
+
+function SidebarContent({
+  active,
+  onNavigate,
+  collapsed,
+  onToggleCollapse,
+  onOpenPalette,
+  onItemClick,
+  onOpenProfile,
+  onLogout,
+  user,
+}: {
+  active: ModuleId;
+  onNavigate: (id: ModuleId) => void;
+  collapsed: boolean;
+  onToggleCollapse?: () => void;
+  onOpenPalette: () => void;
+  onItemClick?: () => void;
+  onOpenProfile: () => void;
+  onLogout: () => void;
+  user?: UserProfileData | null;
+}) {
   return (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border/60 shadow-lg">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border/80 shrink-0 bg-sidebar/50 backdrop-blur-md">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary via-primary to-accent flex items-center justify-center shrink-0 shadow-md shadow-primary/20 transition-transform duration-300 hover:scale-105">
-          <Anchor className="h-5 w-5 text-primary-foreground animate-pulse" />
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="font-extrabold text-sm tracking-tight text-foreground flex items-center gap-1.5 font-mono">
-            CE LOGISTIC <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-bold border border-primary/20">v2.5</span>
-          </span>
-          <span className="text-[11px] font-medium text-muted-foreground truncate tracking-wide">
-            NAVAL DOCKYARD TRINCOMALEE
-          </span>
-        </div>
+    <div className="relative flex h-full flex-col overflow-hidden border-r border-sidebar-border/70 bg-sidebar/75 text-sidebar-foreground backdrop-blur-2xl">
+      {/* ambient brand wash */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-16 -top-24 h-56 w-56 rounded-full opacity-45 blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in srgb, var(--gold) 42%, transparent), transparent 70%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gold)]/60 to-transparent"
+      />
+
+      {/* ── Brand ── */}
+      <div
+        className={cn(
+          "relative flex h-[74px] shrink-0 items-center gap-2 border-b border-sidebar-border/60 px-4",
+          collapsed && "justify-center px-0"
+        )}
+      >
+        {collapsed ? (
+          <CrestMark size={38} />
+        ) : (
+          <>
+            <Wordmark className="min-w-0 flex-1" />
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                title="Collapse sidebar"
+                className="hidden h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border/70 text-muted-foreground transition-all hover:border-primary/40 hover:text-primary lg:flex"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Nav List */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
-        {NAV_ITEMS.map((item) => {
-          const isActive = active === item.id;
-          const Icon = item.icon;
+      {/* ── Command trigger ── */}
+      <div className={cn("px-3 pt-3", collapsed && "px-2")}>
+        <button
+          onClick={onOpenPalette}
+          className={cn(
+            "group flex w-full items-center gap-2.5 rounded-xl border border-sidebar-border/80 bg-sidebar-accent/40 px-2.5 py-2 text-left text-[11.5px] font-semibold text-muted-foreground transition-all duration-200 hover:border-primary/45 hover:bg-sidebar-accent/80 hover:text-foreground",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <Search className="h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-primary" />
+          {!collapsed && (
+            <>
+              <span className="flex-1 truncate">Search & jump…</span>
+              <kbd className="rounded border border-border/80 bg-background/60 px-1.5 py-0.5 font-mono text-[9px] font-bold tracking-wider text-muted-foreground">
+                ⌘K
+              </kbd>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ── Nav ── */}
+      <nav className="scrollbar-thin mt-2 flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+        {NAV_GROUPS.map((group) => {
+          const items = group.ids
+            .map((id) => NAV_ITEMS.find((n) => n.id === id))
+            .filter(Boolean) as typeof NAV_ITEMS;
+          if (!items.length) return null;
           return (
-            <button
-              key={item.id}
-              onClick={() => {
-                onNavigate(item.id);
-                onItemClick?.();
-              }}
-              className={cn(
-                "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group relative",
-                isActive
-                  ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20 scale-[1.01]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
+            <div key={group.label}>
+              {!collapsed && (
+                <p className="mb-1.5 px-2.5 text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground/60">
+                  {group.label}
+                </p>
               )}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={cn(
-                    "p-1.5 rounded-lg transition-colors duration-200",
-                    isActive
-                      ? "bg-white/20 text-primary-foreground"
-                      : "bg-sidebar-accent text-muted-foreground group-hover:text-foreground group-hover:bg-sidebar-accent/80"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <span className="truncate">{item.label}</span>
+              <div className="space-y-1">
+                {items.map((item) => {
+                  const isActive = active === item.id;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onNavigate(item.id);
+                        onItemClick?.();
+                      }}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(
+                        "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-[12.5px] font-semibold transition-colors duration-200",
+                        collapsed && "justify-center px-0",
+                        isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="cmsys-nav-active"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                          className="absolute inset-0 rounded-xl border border-primary/40 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        />
+                      )}
+                      {/* gold active tick */}
+                      <span
+                        className={cn(
+                          "absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-gradient-to-b from-[var(--gold)] to-[var(--gold)]/20 transition-all duration-300",
+                          isActive ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                          isActive
+                            ? "bg-gradient-to-br from-primary/90 to-primary/50 text-primary-foreground shadow-[0_4px_14px_-4px_var(--glow-primary)]"
+                            : "text-muted-foreground group-hover:scale-105 group-hover:text-primary"
+                        )}
+                      >
+                        <Icon className="h-[15px] w-[15px]" />
+                      </span>
+                      {!collapsed && (
+                        <>
+                          <span className="relative z-10 flex-1 truncate text-left">{item.label}</span>
+                          {item.badge !== undefined ? (
+                            <span className="relative z-10 rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                              {item.badge}
+                            </span>
+                          ) : (
+                            <ChevronRight
+                              className={cn(
+                                "relative z-10 h-3 w-3 shrink-0 transition-all duration-200",
+                                isActive
+                                  ? "text-primary opacity-100"
+                                  : "-translate-x-1 text-muted-foreground opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                              )}
+                            />
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              {item.badge !== undefined && (
-                <span
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-colors",
-                    isActive
-                      ? "bg-white/20 text-primary-foreground"
-                      : "bg-sidebar-accent/80 text-muted-foreground group-hover:bg-sidebar-accent group-hover:text-foreground"
-                  )}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
+            </div>
           );
         })}
       </nav>
 
-      {/* Footer info */}
-      <div className="p-3 border-t border-sidebar-border/60 bg-sidebar-accent/20 backdrop-blur-xs shrink-0">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card/40 border border-border/50">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-          <span className="text-[11px] font-mono font-semibold text-muted-foreground truncate">
-            SLN DOCKYARD LOGISTIC ONLINE
-          </span>
+      {/* ── Status card ── */}
+      <div className={cn("shrink-0 border-t border-sidebar-border/60 p-3", collapsed && "px-2")}>
+        {!collapsed ? (
+          <div className="relative overflow-hidden rounded-xl border border-sidebar-border/70 bg-gradient-to-br from-sidebar-accent/60 to-transparent p-2.5">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-emerald-400" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_2px_rgba(52,211,153,0.45)]" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
+                All systems nominal
+              </span>
+            </div>
+            <p className="mt-1.5 truncate text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+              SLN Logistics · Trincomalee
+            </p>
+            <div className="mt-2 flex items-center justify-between text-[9px] font-mono text-muted-foreground/70">
+              <span>v2.7.59</span>
+              <span className="text-[var(--gold)]/80">CE BRANCH</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-emerald-400" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </span>
+          </div>
+        )}
+
+        {/* user row */}
+        <div className={cn("mt-2.5 flex items-center gap-2", collapsed && "hidden")}>
+          <button
+            onClick={onOpenProfile}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-sidebar-accent/60"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-gradient-to-br from-primary/30 to-[var(--gold)]/20 text-[10px] font-bold text-primary">
+              {(user?.displayName || "RP").slice(0, 2).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[11px] font-bold text-foreground">
+                {user?.displayName || "Cdr. R. Perera"}
+              </span>
+              <span className="block truncate text-[9px] uppercase tracking-wider text-muted-foreground">
+                {user?.role || "Admin"}
+              </span>
+            </span>
+          </button>
+          <button
+            onClick={onLogout}
+            title="Sign out"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
+
+      {collapsed && onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          title="Expand sidebar"
+          className="mx-auto mb-3 hidden h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border/70 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary lg:flex"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
 
-function ThemeToggle() {
-  const { currentTheme, presets, setThemeByPreset } = useThemeProfile();
-  const themePrimary = currentTheme?.primary || "#3b82f6";
-  const themePresets = presets || [];
+/* ══════════════════════════════ THEME MENU ═══════════════════════════════ */
+
+function ThemeMenu() {
+  const { currentTheme, setThemeByPreset } = useThemeProfile();
+  const [open, setOpen] = useState(false);
+  const isDark = currentTheme?.mode !== "light";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-lg hover:bg-secondary relative">
-          <Palette className="h-4.5 w-4.5 text-foreground" />
+        <button
+          title="Appearance"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/70 bg-secondary/40 text-muted-foreground transition-all hover:border-primary/40 hover:text-primary"
+        >
+          {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           <span
-            className="absolute bottom-1.5 right-1.5 h-2 w-2 rounded-full border border-background shadow-xs"
-            style={{ backgroundColor: themePrimary }}
+            className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background"
+            style={{ backgroundColor: currentTheme?.primary || "var(--primary)" }}
           />
-        </Button>
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 p-1.5 glass-card border-border/80 shadow-xl">
-        <DropdownMenuLabel className="px-2.5 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          Color Themes
+      <DropdownMenuContent
+        align="end"
+        className="w-64 border-border/80 bg-popover/95 p-2 shadow-2xl backdrop-blur-xl"
+      >
+        <DropdownMenuLabel className="px-1.5 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Command theme
         </DropdownMenuLabel>
+        <div className="grid grid-cols-2 gap-1 pb-1">
+          {(["dark", "light"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                const preset = THEME_PROFILE_PRESETS.find(
+                  (p) => p.mode === mode && (currentTheme ? p.primary === currentTheme.primary : true)
+                );
+                const fallback = THEME_PROFILE_PRESETS.find((p) => p.mode === mode);
+                setThemeByPreset((preset || fallback)!.name);
+              }}
+              className={cn(
+                "flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all",
+                currentTheme?.mode === mode
+                  ? "border-primary/50 bg-primary/15 text-primary"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode === "dark" ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
+              {mode === "dark" ? "Night" : "Daylight"}
+            </button>
+          ))}
+        </div>
         <DropdownMenuSeparator className="bg-border/60" />
-        <div className="space-y-0.5 py-1 max-h-64 overflow-y-auto">
-          {themePresets.map((preset) => {
-            const isSelected = currentTheme?.name === preset.name;
+        <div className="scrollbar-thin max-h-64 space-y-0.5 overflow-y-auto pt-1">
+          {THEME_PROFILE_PRESETS.map((preset) => {
+            const selected = currentTheme?.name === preset.name;
             return (
               <DropdownMenuItem
                 key={preset.name}
                 onClick={() => setThemeByPreset(preset.name)}
                 className={cn(
-                  "flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer font-medium transition-colors",
-                  isSelected ? "bg-primary/10 text-primary font-bold" : "hover:bg-secondary text-foreground"
+                  "flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                  selected ? "bg-primary/10 text-primary" : "text-foreground"
                 )}
               >
-                <div className="flex items-center gap-2.5">
+                <span className="flex items-center gap-2">
                   <span
-                    className="h-3.5 w-3.5 rounded-full border border-black/10 dark:border-white/10 shrink-0 shadow-2xs"
-                    style={{ backgroundColor: preset.primary }}
+                    className="h-3 w-3 rounded-full border border-white/10"
+                    style={{
+                      background: `linear-gradient(135deg, ${preset.primary}, ${preset.accent})`,
+                    }}
                   />
-                  <span>{preset.name}</span>
-                </div>
-                {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                  {preset.name}
+                </span>
+                {selected && <Check className="h-3 w-3" />}
               </DropdownMenuItem>
             );
           })}
@@ -227,10 +439,238 @@ function ThemeToggle() {
   );
 }
 
+/* ══════════════════════════════ TOP QUICK STAT ═══════════════════════════ */
+
+function QuickStat({
+  label,
+  value,
+  sub,
+  series,
+  color,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  series: number[];
+  color: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group relative hidden min-w-[104px] flex-col overflow-hidden rounded-xl border border-border/60 bg-secondary/30 px-2.5 py-1.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 xl:flex"
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-[8.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className="h-1.5 w-1.5 rounded-full transition-transform duration-200 group-hover:scale-150"
+          style={{ backgroundColor: color }}
+        />
+      </span>
+      <span className="mt-0.5 text-[12.5px] font-bold leading-none tracking-tight tabular-nums text-foreground">
+        {value}
+      </span>
+      <span className="mt-0.5 text-[8.5px] font-medium leading-none text-muted-foreground/80">
+        {sub}
+      </span>
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 opacity-50 transition-opacity group-hover:opacity-90">
+        <Sparkline data={series} height={14} stroke={color} />
+      </span>
+    </button>
+  );
+}
+
+/* ══════════════════════════════ COMMAND PALETTE ══════════════════════════ */
+
+function CommandPalette({
+  open,
+  onOpenChange,
+  active,
+  onNavigate,
+  onOpenProfile,
+  onLogout,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  active: ModuleId;
+  onNavigate: (id: ModuleId) => void;
+  onOpenProfile: () => void;
+  onLogout: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const reset = setTimeout(() => {
+      setQuery("");
+      setCursor(0);
+      inputRef.current?.focus();
+    }, 60);
+    return () => clearTimeout(reset);
+  }, [open]);
+
+  const actions = useMemo(() => {
+    const navActions = NAV_ITEMS.map((n) => ({
+      id: n.id as string,
+      label: n.label,
+      hint: n.description,
+      icon: n.icon as LucideIcon,
+      run: () => onNavigate(n.id),
+    }));
+    return [
+      ...navActions,
+      {
+        id: "profile",
+        label: "Profile & security",
+        hint: "Account details, password",
+        icon: User as LucideIcon,
+        run: onOpenProfile,
+      },
+      {
+        id: "logout",
+        label: "Sign out",
+        hint: "End this session",
+        icon: LogOut as LucideIcon,
+        run: onLogout,
+      },
+    ];
+  }, [onNavigate, onOpenProfile, onLogout]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return actions;
+    return actions.filter(
+      (a) => a.label.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q)
+    );
+  }, [actions, query]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setCursor(0), 0);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const choose = (i: number) => {
+    const action = filtered[i];
+    if (!action) return;
+    action.run();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="gap-0 overflow-hidden border-border/70 bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:max-w-xl"
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Command palette</DialogTitle>
+          <DialogDescription>Search modules and actions</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3">
+          <Search className="h-4 w-4 shrink-0 text-primary" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setCursor((c) => Math.min(filtered.length - 1, c + 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setCursor((c) => Math.max(0, c - 1));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                choose(cursor);
+              }
+            }}
+            placeholder="Jump to a module or action…"
+            className="flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <kbd className="rounded border border-border/70 bg-secondary/60 px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted-foreground">
+            ESC
+          </kbd>
+        </div>
+
+        <div className="scrollbar-thin max-h-[340px] overflow-y-auto p-2">
+          {filtered.length === 0 ? (
+            <p className="py-10 text-center text-xs font-medium text-muted-foreground">
+              No matches for “{query}”
+            </p>
+          ) : (
+            filtered.map((a, i) => {
+              const Icon = a.icon;
+              const isActive = active === (a.id as ModuleId);
+              return (
+                <button
+                  key={a.id}
+                  onMouseEnter={() => setCursor(i)}
+                  onClick={() => choose(i)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                    cursor === i ? "bg-primary/12 ring-1 ring-primary/30" : "hover:bg-secondary/50"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+                      cursor === i
+                        ? "border-primary/40 bg-primary/20 text-primary"
+                        : "border-border/60 bg-secondary/50 text-muted-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[12.5px] font-bold text-foreground">
+                        {a.label}
+                      </span>
+                      {isActive && (
+                        <span className="rounded-full bg-[var(--gold)]/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[var(--gold)]">
+                          current
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10.5px] font-medium text-muted-foreground">
+                      {a.hint}
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border/60 bg-secondary/30 px-4 py-2 text-[9.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="flex items-center gap-3">
+            <span>↑↓ navigate</span>
+            <span>⏎ open</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CrestMark size={14} glow={false} /> CMSys command
+          </span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ══════════════════════════════ APP SHELL ════════════════════════════════ */
+
 export function AppShell({ active, onNavigate, stats, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [timeStr, setTimeStr] = useState("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [timeStr, setTimeStr] = useState("--:--:--");
   const [dateStr, setDateStr] = useState("");
 
   const { data: notifRes, refresh: refreshNotifs } = useFetch<{
@@ -238,8 +678,34 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
     unreadCount: number;
   }>("/api/notifications");
 
-  const { data: userProfile, refresh: refreshProfile } = useFetch<UserProfileData>("/api/user/profile");
+  const { data: userProfile, refresh: refreshProfile } = useFetch<UserProfileData>(
+    "/api/user/profile"
+  );
 
+  /* collapse persistence */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const stored = localStorage.getItem("cmsys-rail");
+        if (stored === "1") setCollapsed(true);
+      } catch {
+        /* noop */
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+  const toggleCollapse = useCallback(() => {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("cmsys-rail", c ? "0" : "1");
+      } catch {
+        /* noop */
+      }
+      return !c;
+    });
+  }, []);
+
+  /* clock */
   useEffect(() => {
     const update = () => {
       const now = new Date();
@@ -248,6 +714,7 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
+          timeZone: "Asia/Colombo",
         })
       );
       setDateStr(
@@ -255,13 +722,28 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
           weekday: "short",
           day: "2-digit",
           month: "short",
-          year: "numeric",
+          timeZone: "Asia/Colombo",
         })
       );
     };
-    update();
+    const first = requestAnimationFrame(update);
     const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
+    return () => {
+      cancelAnimationFrame(first);
+      clearInterval(timer);
+    };
+  }, []);
+
+  /* ⌘K */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const notifications = notifRes?.notifications || [];
@@ -271,203 +753,371 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
     await apiRequest("/api/notifications", "POST", { action: "mark-read", id });
     refreshNotifs();
   };
-
   const handleMarkAllRead = async () => {
-    const allIds = notifications.map((n) => n.id);
-    await apiRequest("/api/notifications", "POST", { action: "mark-all-read", ids: allIds });
+    await apiRequest("/api/notifications", "POST", {
+      action: "mark-all-read",
+      ids: notifications.map((n) => n.id),
+    });
     refreshNotifs();
   };
-
   const handleClearNotifs = async () => {
     await apiRequest("/api/notifications", "POST", { action: "clear" });
     refreshNotifs();
   };
-
   const handleLogout = async () => {
     await apiRequest("/api/auth/logout", "POST");
     window.location.reload();
   };
 
-  // Extract initials
   const initials = useMemo(() => {
     const name = userProfile?.displayName || "Radhika Perera";
     const parts = name.replace(/^(Cdr\.|Lt\.|Capt\.|Po|Sgt)\s+/i, "").trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return name.slice(0, 2).toUpperCase();
   }, [userProfile]);
 
+  const activeItem = NAV_ITEMS.find((n) => n.id === active);
+  const ActiveIcon = activeItem?.icon;
+
+  const statSeries = useMemo(() => {
+    const base = [stats?.net ?? 0, stats?.task ?? 0, stats?.avail ?? 0, stats?.team ?? 0];
+    return base.map((v, i) => {
+      const seed = (v % 17) + i * 3 + 5;
+      return Array.from({ length: 10 }, (_, k) => Math.max(2, seed * (0.55 + 0.45 * Math.sin(k / 1.7 + i))));
+    });
+  }, [stats]);
+
   return (
-    <div className="min-h-screen flex bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:block w-64 shrink-0 sticky top-0 h-screen z-40">
-        <SidebarContent active={active} onNavigate={onNavigate} />
+    <div className="relative flex min-h-screen bg-transparent font-sans text-foreground antialiased selection:bg-primary/25">
+      <BackgroundFX dense />
+
+      {/* ── Desktop sidebar ── */}
+      <aside
+        className={cn(
+          "sticky top-0 z-40 hidden h-screen shrink-0 transition-[width] duration-300 ease-out lg:block",
+          collapsed ? "w-[82px]" : "w-[264px]"
+        )}
+      >
+        <SidebarContent
+          active={active}
+          onNavigate={onNavigate}
+          collapsed={collapsed}
+          onToggleCollapse={toggleCollapse}
+          onOpenPalette={() => setPaletteOpen(true)}
+          onOpenProfile={() => setProfileOpen(true)}
+          onLogout={handleLogout}
+          user={userProfile}
+        />
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* ── Mobile sidebar ── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 p-0 border-0">
+        <SheetContent side="left" className="w-[280px] border-0 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent
             active={active}
             onNavigate={onNavigate}
+            collapsed={false}
+            onOpenPalette={() => {
+              setMobileOpen(false);
+              setPaletteOpen(true);
+            }}
             onItemClick={() => setMobileOpen(false)}
+            onOpenProfile={() => {
+              setMobileOpen(false);
+              setProfileOpen(true);
+            }}
+            onLogout={handleLogout}
+            user={userProfile}
           />
         </SheetContent>
       </Sheet>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
-        <header className="h-16 border-b border-border/80 bg-card/75 backdrop-blur-xl flex items-center justify-between px-4 sm:px-6 gap-3 shrink-0 sticky top-0 z-30 shadow-xs relative">
-          {/* Top edge ambient gradient line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary via-accent to-purple-500 opacity-80" />
+      {/* ── Main column ── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-[64px] shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:px-5">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-2.5">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden rounded-lg">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl lg:hidden">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
             </Sheet>
 
-            <div className="hidden sm:block">
-              <p className="text-[11px] font-medium text-muted-foreground">{dateStr}</p>
-              <p className="text-sm font-mono font-bold text-foreground tabular-nums tracking-tight">
-                {timeStr}
-              </p>
+            {collapsed && (
+              <button
+                onClick={toggleCollapse}
+                className="hidden h-9 w-9 items-center justify-center rounded-xl border border-border/60 text-muted-foreground transition-colors hover:text-primary lg:flex"
+                title="Expand sidebar"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            )}
+
+            <div className="flex min-w-0 items-center gap-2.5">
+              {ActiveIcon && (
+                <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 to-transparent text-primary sm:flex">
+                  <ActiveIcon className="h-4 w-4" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
+                  <span>CMSys</span>
+                  <ChevronRight className="h-2.5 w-2.5" />
+                  <span className="text-[var(--gold)]/80">SLN Logistics</span>
+                </div>
+                <h2 className="truncate text-[13.5px] font-bold leading-tight tracking-tight text-foreground">
+                  {activeItem?.label || "Dashboard"}
+                </h2>
+              </div>
             </div>
           </div>
 
-          {/* Quick stats — hidden on small screens */}
-          <div className="hidden md:flex items-center gap-2.5">
-            <QuickStat label="NET" value={stats ? formatCurrency(stats.net) : "—"} tone="blue" />
-            <QuickStat label="TASK" value={stats ? String(stats.task) : "—"} tone="amber" />
-            <QuickStat label="AVAIL" value={stats ? formatCurrency(stats.avail) : "—"} tone="green" />
-            <QuickStat label="TEAM" value={stats ? String(stats.team) : "—"} tone="purple" />
-          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* quick stats */}
+            <div className="mr-1 hidden items-center gap-1.5 xl:flex">
+              <QuickStat
+                label="Vote"
+                value={compactMoney(stats?.net ?? 0)}
+                sub="allocated"
+                series={statSeries[0]}
+                color="var(--primary)"
+                onClick={() => onNavigate("projects")}
+              />
+              <QuickStat
+                label="Files"
+                value={String(stats?.task ?? 0)}
+                sub="in pipeline"
+                series={statSeries[1]}
+                color="var(--chart-3)"
+                onClick={() => onNavigate("procurement")}
+              />
+              <QuickStat
+                label="Balance"
+                value={compactMoney(stats?.avail ?? 0)}
+                sub="available"
+                series={statSeries[2]}
+                color="var(--chart-2)"
+                onClick={() => onNavigate("projects")}
+              />
+              <QuickStat
+                label="Projects"
+                value={String(stats?.team ?? 0)}
+                sub="active"
+                series={statSeries[3]}
+                color="var(--chart-5)"
+                onClick={() => onNavigate("projects")}
+              />
+            </div>
 
-          <div className="flex items-center gap-2">
-            {/* Theme toggle */}
-            <ThemeToggle />
+            {/* command trigger */}
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="hidden items-center gap-2 rounded-xl border border-border/60 bg-secondary/40 px-2.5 py-2 text-[11px] font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:text-foreground md:flex"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Quick jump</span>
+              <kbd className="rounded border border-border/70 bg-background/70 px-1 py-0.5 font-mono text-[9px] font-bold">
+                ⌘K
+              </kbd>
+            </button>
 
-            {/* Notifications Popover */}
+            {/* clock */}
+            <div className="hidden items-center gap-2 rounded-xl border border-border/60 bg-secondary/30 px-2.5 py-1.5 sm:flex">
+              <Radio className="h-3 w-3 text-emerald-400" />
+              <div className="leading-none">
+                <p className="font-mono text-[11.5px] font-bold tabular-nums text-foreground">
+                  {timeStr}
+                </p>
+                <p className="mt-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {dateStr} · CMB
+                </p>
+              </div>
+            </div>
+
+            <ThemeMenu />
+
+            {/* notifications */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-lg hover:bg-secondary">
-                  <Bell className="h-4.5 w-4.5 text-foreground" />
+                <button className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/70 bg-secondary/40 text-muted-foreground transition-all hover:border-primary/40 hover:text-primary">
+                  <Bell className="h-4 w-4" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+                    <>
+                      <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                      </span>
+                    </>
                   )}
-                </Button>
+                </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 sm:w-96 p-0 glass-card border-border/80 shadow-2xl">
-                <div className="p-3 border-b border-border flex items-center justify-between bg-muted/40">
+              <PopoverContent
+                align="end"
+                className="w-[340px] overflow-hidden border-border/70 bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:w-[382px]"
+              >
+                <div className="flex items-center justify-between border-b border-border/60 bg-secondary/30 px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <span className="font-semibold text-xs text-foreground">Notifications</span>
+                    <Bell className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[11.5px] font-bold text-foreground">Signal feed</span>
                     {unreadCount > 0 && (
-                      <CustomBadge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px] px-1.5 py-0.2">
+                      <span className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-[9px] font-bold text-destructive">
                         {unreadCount} new
-                      </CustomBadge>
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
                     {unreadCount > 0 && (
-                      <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-6 text-[10px] px-2 text-primary">
-                        Mark read
-                      </Button>
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="rounded-md px-1.5 py-1 text-[9.5px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10"
+                      >
+                        Read all
+                      </button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={handleClearNotifs} className="h-6 text-[10px] px-1.5 text-muted-foreground hover:text-red-400">
+                    <button
+                      onClick={handleClearNotifs}
+                      className="rounded-md px-1.5 py-1 text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground hover:text-destructive"
+                    >
                       Clear
-                    </Button>
+                    </button>
                   </div>
                 </div>
-
-                <ScrollArea className="h-72 p-2 space-y-1">
-                  {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-muted-foreground italic space-y-1">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-400 mx-auto mb-1 opacity-70" />
-                      <p>No notifications right now</p>
-                    </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => handleMarkRead(n.id)}
-                        className={cn(
-                          "p-2.5 rounded-lg border text-xs space-y-1 transition-colors cursor-pointer relative",
-                          n.read
-                            ? "bg-background/40 border-border/40 text-muted-foreground opacity-75"
-                            : "bg-secondary/40 border-primary/30 text-foreground hover:bg-secondary/70"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-[11px] truncate flex items-center gap-1.5">
-                            {n.type === "qc" && <ShieldAlert className="h-3 w-3 text-amber-400 shrink-0" />}
-                            {n.type === "procurement" && <FileText className="h-3 w-3 text-blue-400 shrink-0" />}
-                            {n.type === "split" && <Boxes className="h-3 w-3 text-purple-400 shrink-0" />}
-                            {n.type === "system" && <User className="h-3 w-3 text-emerald-400 shrink-0" />}
-                            {n.title}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">{n.time}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">{n.message}</p>
+                <ScrollArea className="h-[288px]">
+                  <div className="space-y-1 p-2">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-12 text-center">
+                        <CheckCircle2 className="mx-auto mb-2 h-7 w-7 text-emerald-400/70" />
+                        <p className="text-[11.5px] font-semibold text-foreground">All clear</p>
+                        <p className="text-[10.5px] text-muted-foreground">No signals awaiting review</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => handleMarkRead(n.id)}
+                          className={cn(
+                            "relative w-full rounded-xl border p-2.5 text-left transition-colors",
+                            n.read
+                              ? "border-border/40 bg-background/30 opacity-70"
+                              : "border-primary/25 bg-primary/5 hover:bg-primary/10"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 truncate text-[11px] font-bold text-foreground">
+                              {n.type === "qc" && <ShieldAlert className="h-3 w-3 shrink-0 text-amber-400" />}
+                              {n.type === "procurement" && <FileText className="h-3 w-3 shrink-0 text-primary" />}
+                              {n.type === "split" && <Boxes className="h-3 w-3 shrink-0 text-violet-400" />}
+                              {n.type === "system" && <Sparkles className="h-3 w-3 shrink-0 text-emerald-400" />}
+                              {n.title}
+                            </span>
+                            <span className="shrink-0 text-[9px] font-medium text-muted-foreground">{n.time}</span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[10.5px] leading-snug text-muted-foreground">
+                            {n.message}
+                          </p>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </ScrollArea>
               </PopoverContent>
             </Popover>
 
-            {/* User Profile Menu */}
+            {/* profile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary/20 via-accent/20 to-purple-500/20 text-primary border border-primary/30 flex items-center justify-center text-xs font-bold hover:scale-105 transition-transform shadow-xs cursor-pointer"
-                  title="User Profile & Settings"
-                >
+                <button className="group relative flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-[var(--gold)]/25 text-[11px] font-bold text-primary transition-transform hover:scale-105">
                   {initials}
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-400" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 glass-card border-border/80 shadow-xl">
+              <DropdownMenuContent
+                align="end"
+                className="w-60 border-border/70 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
+              >
                 <DropdownMenuLabel className="p-2">
-                  <div>
-                    <p className="font-bold text-sm text-foreground">{userProfile?.displayName || "Cdr. R. Perera"}</p>
-                    <p className="text-xs text-muted-foreground font-normal flex items-center gap-1 mt-0.5">
-                      <CustomBadge className="bg-primary/10 text-primary border-primary/20 text-[9px] px-1 py-0">
-                        {userProfile?.role || "Admin"}
-                      </CustomBadge>
-                      · {userProfile?.department || "Engineering"}
-                    </p>
-                  </div>
+                  <p className="text-[12.5px] font-bold text-foreground">
+                    {userProfile?.displayName || "Cdr. R. Perera"}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+                    <CustomBadge className="border-primary/25 bg-primary/10 px-1 py-0 text-[8px] text-primary">
+                      {userProfile?.role || "Admin"}
+                    </CustomBadge>
+                    {userProfile?.department || "Engineering"}
+                  </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/60" />
                 <DropdownMenuItem
                   onClick={() => setProfileOpen(true)}
-                  className="rounded-lg cursor-pointer flex items-center gap-2"
+                  className="cursor-pointer gap-2 rounded-lg text-[11.5px] font-semibold"
                 >
-                  <User className="h-4 w-4 text-primary" /> Profile & Account Settings
+                  <User className="h-3.5 w-3.5 text-primary" /> Profile & security
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setPaletteOpen(true)}
+                  className="cursor-pointer gap-2 rounded-lg text-[11.5px] font-semibold"
+                >
+                  <CommandIcon className="h-3.5 w-3.5 text-[var(--gold)]" /> Command palette
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-border/60" />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="rounded-lg cursor-pointer text-red-500 dark:text-red-400 font-medium flex items-center gap-2"
+                  className="cursor-pointer gap-2 rounded-lg text-[11.5px] font-semibold text-destructive"
                 >
-                  Logout
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
+        {/* ── Content ── */}
+        <main className="relative flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {/* ── Footer ── */}
+        <footer className="mt-auto flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/50 px-3 py-2.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/60 sm:px-6">
+          <span className="flex items-center gap-2">
+            <CrestMark size={14} glow={false} />
+            CMSys · SLN Logistics · Trincomalee
+          </span>
+          <span className="flex items-center gap-3">
+            <span className="hidden sm:inline">Restricted · Security level 4</span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Link stable
+            </span>
+          </span>
+        </footer>
       </div>
 
-      {/* User Profile & Password Modal */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        active={active}
+        onNavigate={onNavigate}
+        onOpenProfile={() => {
+          setPaletteOpen(false);
+          setProfileOpen(true);
+        }}
+        onLogout={handleLogout}
+      />
+
       {profileOpen && (
         <UserProfileModal
           open={profileOpen}
@@ -482,6 +1132,8 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
     </div>
   );
 }
+
+/* ══════════════════════════════ PROFILE MODAL ════════════════════════════ */
 
 function UserProfileModal({
   open,
@@ -504,11 +1156,13 @@ function UserProfileModal({
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (!user) return;
+    const t = setTimeout(() => {
       setDisplayName(user.displayName || "Cdr. R. Perera");
       setEmail(user.email || "r.perera@navy.lk");
       setDepartment(user.department || "Engineering");
-    }
+    }, 0);
+    return () => clearTimeout(t);
   }, [user]);
 
   const passwordMatch = newPassword.length >= 4 && newPassword === confirmPassword;
@@ -518,12 +1172,10 @@ function UserProfileModal({
       toast({ title: "Display Name is required", variant: "destructive" });
       return;
     }
-
     if (newPassword && newPassword !== confirmPassword) {
       toast({ title: "New Passwords do not match", variant: "destructive" });
       return;
     }
-
     setSubmitting(true);
     const res = await apiRequest("/api/user/profile", "PUT", {
       displayName: displayName.trim(),
@@ -532,7 +1184,6 @@ function UserProfileModal({
       newPassword: newPassword.trim() || undefined,
     });
     setSubmitting(false);
-
     if (res.ok) {
       toast({ title: "Profile & settings updated successfully" });
       onSaved();
@@ -544,121 +1195,138 @@ function UserProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-border/70 bg-popover/95 backdrop-blur-2xl sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" /> User Profile & Settings
+          <DialogTitle className="flex items-center gap-2.5 text-[15px]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
+              <User className="h-4 w-4" />
+            </span>
+            Profile & security
           </DialogTitle>
-          <DialogDescription>
-            View and manage your personal account details, department, and security password.
+          <DialogDescription className="text-[11.5px]">
+            Manage your identity, department and access PIN for the CMSys command portal.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="space-y-4 py-2">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="details" className="gap-1.5 text-xs">
-              <User className="h-3.5 w-3.5" /> Profile Details
+        <Tabs defaultValue="details" className="space-y-4 py-1">
+          <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-secondary/50">
+            <TabsTrigger value="details" className="gap-1.5 rounded-lg text-[11px] font-bold">
+              <User className="h-3.5 w-3.5" /> Profile
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-1.5 text-xs">
-              <KeyRound className="h-3.5 w-3.5" /> Security & Password
+            <TabsTrigger value="security" className="gap-1.5 rounded-lg text-[11px] font-bold">
+              <KeyRound className="h-3.5 w-3.5" /> Security
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-4">
-            <div className="p-3 rounded-xl border border-border bg-secondary/20 flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-secondary/30 p-3">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Account Username</p>
-                <p className="text-sm font-mono font-bold text-foreground">{user?.username || "admin"}</p>
+                <p className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Account username
+                </p>
+                <p className="mt-0.5 font-mono text-[13px] font-bold text-foreground">
+                  {user?.username || "admin"}
+                </p>
               </div>
-              <CustomBadge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                Role: {user?.role || "Admin"}
+              <CustomBadge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                {user?.role || "Admin"}
               </CustomBadge>
             </div>
 
             <div className="space-y-3">
               <div>
-                <Label className="text-xs flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-primary" /> Display Name / Rank & Name *
+                <Label className="flex items-center gap-1.5 text-[11px] font-semibold">
+                  <User className="h-3.5 w-3.5 text-primary" /> Display name / rank
                 </Label>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="e.g. Cdr. R. Perera"
-                  className="text-xs bg-background mt-1"
+                  className="mt-1 h-10 rounded-xl bg-background/60 text-[12px]"
                 />
               </div>
-
               <div>
-                <Label className="text-xs flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 text-blue-400" /> Email Address
+                <Label className="flex items-center gap-1.5 text-[11px] font-semibold">
+                  <Mail className="h-3.5 w-3.5 text-[var(--chart-4)]" /> Email address
                 </Label>
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. r.perera@navy.lk"
-                  className="text-xs bg-background mt-1"
+                  placeholder="r.perera@navy.lk"
+                  className="mt-1 h-10 rounded-xl bg-background/60 text-[12px]"
                 />
               </div>
-
               <div>
-                <Label className="text-xs flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5 text-amber-400" /> Department / Unit
+                <Label className="flex items-center gap-1.5 text-[11px] font-semibold">
+                  <Building2 className="h-3.5 w-3.5 text-[var(--gold)]" /> Department / unit
                 </Label>
                 <Input
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="e.g. Engineering / CSLOG"
-                  className="text-xs bg-background mt-1"
+                  placeholder="Engineering / CSLOG"
+                  className="mt-1 h-10 rounded-xl bg-background/60 text-[12px]"
                 />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="security" className="space-y-4">
-            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300 space-y-1">
-              <div className="font-semibold flex items-center gap-1.5">
-                <Lock className="h-4 w-4 text-amber-400" /> Change Account Password
+            <div className="space-y-1 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
+              <div className="flex items-center gap-1.5 text-[11.5px] font-bold text-amber-300">
+                <Lock className="h-3.5 w-3.5" /> Change access PIN
               </div>
-              <p className="text-[11px] opacity-90">
-                To update your password, type a new password below (min 4 characters).
+              <p className="text-[10.5px] leading-snug text-amber-200/80">
+                Enter a new PIN (minimum 4 characters). This is the credential used at the secure
+                login gate.
               </p>
             </div>
 
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Current Password (optional)</Label>
+                <Label className="text-[11px]">Current PIN (optional)</Label>
                 <Input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className="text-xs bg-background mt-1"
+                  placeholder="••••"
+                  className="mt-1 h-10 rounded-xl bg-background/60 font-mono text-[12px]"
                 />
               </div>
-
               <div>
-                <Label className="text-xs">New Password</Label>
+                <Label className="text-[11px]">New PIN</Label>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 4 characters"
-                  className="text-xs bg-background mt-1 font-mono"
+                  className="mt-1 h-10 rounded-xl bg-background/60 font-mono text-[12px]"
                 />
               </div>
-
               <div>
-                <Label className="text-xs">Confirm New Password</Label>
+                <Label className="text-[11px]">Confirm new PIN</Label>
                 <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                  className="text-xs bg-background mt-1 font-mono"
+                  placeholder="Re-enter new PIN"
+                  className="mt-1 h-10 rounded-xl bg-background/60 font-mono text-[12px]"
                 />
                 {newPassword && (
-                  <p className={cn("text-[11px] mt-1 font-medium", passwordMatch ? "text-emerald-400" : "text-red-400")}>
-                    {passwordMatch ? "✓ Passwords match" : "✕ Passwords do not match"}
+                  <p
+                    className={cn(
+                      "mt-1.5 flex items-center gap-1 text-[10.5px] font-semibold",
+                      passwordMatch ? "text-emerald-400" : "text-destructive"
+                    )}
+                  >
+                    {passwordMatch ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" /> PINs match
+                      </>
+                    ) : (
+                      <>
+                        <X className="h-3 w-3" /> PINs do not match
+                      </>
+                    )}
                   </p>
                 )}
               </div>
@@ -667,42 +1335,24 @@ function UserProfileModal({
         </Tabs>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+            className="rounded-xl text-[11.5px]"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveProfile} disabled={submitting} className="gap-1.5 bg-primary text-primary-foreground">
+          <Button
+            onClick={handleSaveProfile}
+            disabled={submitting}
+            className="gap-1.5 rounded-xl text-[11.5px] font-bold"
+          >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save Profile & Password
+            Save changes
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function QuickStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "blue" | "amber" | "green" | "purple";
-}) {
-  const tones = {
-    blue: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20",
-    amber: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
-    green: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    purple: "text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/20",
-  };
-  return (
-    <div className={cn("flex flex-col items-end px-3 py-1 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 shadow-2xs hover:shadow-xs", tones[tone])}>
-      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/90 leading-none">
-        {label}
-      </span>
-      <span className="text-xs font-bold leading-tight tabular-nums mt-0.5">
-        {value}
-      </span>
-    </div>
   );
 }

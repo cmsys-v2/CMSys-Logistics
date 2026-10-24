@@ -1,6 +1,6 @@
 export const DEFAULT_PROFILE_AS_ANY = {
-  name: "Ocean Blue (Dark)",
+  name: "Deep Command (Dark)",
   mode: "dark",
-  primary: "#3b82f6",
-  accent: "#8b5cf6",
+  primary: "#2f8dff",
+  accent: "#2ad4e8",
 } as const;

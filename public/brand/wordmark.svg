@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 210" role="img" aria-label="CMSys SLN Logistics Trincomalee">
+  <defs>
+    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#e6eef8"/>
+      <stop offset="58%" stop-color="#b9c8da"/>
+      <stop offset="100%" stop-color="#eef5ff"/>
+    </linearGradient>
+    <linearGradient id="goldText" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe9a3"/>
+      <stop offset="35%" stop-color="#f8d370"/>
+      <stop offset="36%" stop-color="#f4c04b"/>
+      <stop offset="68%" stop-color="#e09a1e"/>
+      <stop offset="100%" stop-color="#c97c07"/>
+    </linearGradient>
+    <linearGradient id="divider" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#f0b429"/>
+    </linearGradient>
+  </defs>
+
+  <!-- CMSys -->
+  <text x="0" y="104" font-family="'Segoe UI Semibold','Helvetica Neue',Arial,sans-serif"
+        font-size="112" font-weight="800" letter-spacing="-2" fill="url(#silver)">CMS<tspan fill="url(#goldText)">ys</tspan></text>
+
+  <!-- SLN LOGISTICS -->
+  <text x="4" y="158" font-family="'Segoe UI',Arial,sans-serif" font-size="42" font-weight="700"
+        letter-spacing="4.2" fill="#dfe9f5" opacity="0.96">SLN LOGISTICS</text>
+
+  <!-- divider -->
+  <rect x="5" y="176" width="176" height="3.4" rx="1.7" fill="url(#divider)"/>
+
+  <!-- TRINCOMALEE -->
+  <text x="332" y="190" font-family="'Segoe UI',Arial,sans-serif" font-size="25" font-weight="600"
+        letter-spacing="6.4" fill="#f4c563">TRINCOMALEE</text>
+</svg>

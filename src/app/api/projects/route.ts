@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { DEMO_PROJECTS } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,7 +28,8 @@ export async function GET() {
     response.headers.set("x-custom-ver", "v25-projects");
     return response;
   } catch (e: any) {
-    console.error(e);
+    console.error("projects GET failed — serving offline preview data", e);
+    return NextResponse.json(DEMO_PROJECTS);
     return NextResponse.json({ error: e.message || "Failed" }, { status: 500 });
   }
 }

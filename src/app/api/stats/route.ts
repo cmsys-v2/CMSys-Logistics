@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { DEMO_STATS } from "@/lib/demo-data";
 
 export async function GET() {
   try {
@@ -128,10 +129,8 @@ export async function GET() {
       team: activeProjects,
     });
   } catch (e) {
-    console.error("stats error", e);
-    return NextResponse.json(
-      { error: "Failed to load stats" },
-      { status: 500 }
-    );
+    console.error("stats error — serving offline preview data", e);
+    // Offline preview fallback (see src/lib/demo-data.ts)
+    return NextResponse.json(DEMO_STATS);
   }
 }

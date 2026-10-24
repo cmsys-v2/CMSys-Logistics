@@ -13,7 +13,8 @@ import { CollectionModule } from "@/components/erp/modules/collection";
 import { StakeholdersModule } from "@/components/erp/modules/stakeholders";
 import { SettingsModule } from "@/components/erp/modules/settings";
 import { LoginWall } from "@/components/auth/login-wall";
-import { Loader2, Anchor } from "lucide-react";
+import { CrestMark } from "@/components/brand/cmsys-brand";
+import { BackgroundFX } from "@/components/erp/fx";
 
 interface SessionResponse {
   authenticated: boolean;
@@ -24,6 +25,35 @@ interface SessionResponse {
     role: string;
     department: string | null;
   } | null;
+}
+
+function BootScreen() {
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden">
+      <BackgroundFX dense />
+      <div className="relative flex flex-col items-center gap-5">
+        <div className="relative">
+          <span className="absolute inset-0 animate-sonar rounded-full border border-primary/40" />
+          <CrestMark size={92} priority className="animate-float-slow" />
+        </div>
+        <div className="text-center">
+          <div className="flex items-baseline justify-center gap-1">
+            <span className="text-3xl font-black tracking-[-0.05em] text-steel">CMS</span>
+            <span className="text-3xl font-black tracking-[-0.05em] text-gold">ys</span>
+          </div>
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.42em] text-muted-foreground">
+            SLN Logistics · Trincomalee
+          </p>
+        </div>
+        <div className="mt-1 h-[3px] w-52 overflow-hidden rounded-full bg-border/60">
+          <div className="animate-shimmer h-full w-full rounded-full bg-gradient-to-r from-primary via-[var(--gold)] to-primary" />
+        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground/70">
+          Establishing secure link…
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -47,27 +77,12 @@ export default function Home() {
     refreshStats();
   };
 
-  // Loading state while checking session
-  if (sessionLoading) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground space-y-4">
-        <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
-          <Anchor className="h-7 w-7 text-primary-foreground animate-spin" />
-        </div>
-        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span>Verifying Naval Logistics Session...</span>
-        </div>
-      </div>
-    );
-  }
+  if (sessionLoading) return <BootScreen />;
 
-  // If not authenticated, show full-screen Login Wall
   if (!sessionData?.authenticated) {
     return <LoginWall onLoginSuccess={refreshSession} />;
   }
 
-  // Authenticated state
   return (
     <AppShell active={active} onNavigate={handleNavigate} stats={stats}>
       {active === "dashboard" && <Dashboard onNavigate={handleNavigate} />}

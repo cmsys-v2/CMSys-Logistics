@@ -12,10 +12,10 @@ export interface ActiveThemeProfile {
 const STORAGE_KEY = "ce-theme-profile";
 
 export const DEFAULT_PROFILE: ActiveThemeProfile = {
-  name: "Ocean Blue (Dark)",
+  name: "Deep Command (Dark)",
   mode: "dark",
-  primary: "#3b82f6",
-  accent: "#8b5cf6",
+  primary: "#2f8dff",
+  accent: "#2ad4e8",
 };
 
 // Helper to convert hex to rgb
