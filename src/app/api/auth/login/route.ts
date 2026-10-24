@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
     }
     const token = createSession(user);
     const res = NextResponse.json({ ok: true, user });
+    // A deliberate sign-in re-enables the silent preview session.
+    res.cookies.set("cmsys_gate", "", { maxAge: 0, path: "/" });
     res.cookies.set("ce_session", token, {
       httpOnly: true,
       sameSite: "lax",

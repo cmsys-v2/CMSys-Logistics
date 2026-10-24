@@ -64,6 +64,7 @@ import { formatCurrency, THEME_PROFILE_PRESETS } from "@/lib/constants";
 import { useThemeProfile } from "@/lib/use-theme-profile";
 import { CrestMark, Wordmark } from "@/components/brand/cmsys-brand";
 import { BackgroundFX, Sparkline } from "./fx";
+import { armLoginGate } from "@/lib/preview-mode";
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 
@@ -765,6 +766,9 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
     refreshNotifs();
   };
   const handleLogout = async () => {
+    // Leaving the deck intentionally disables the silent preview session, so the
+    // next load shows the secure access gate instead of re-entering directly.
+    armLoginGate();
     await apiRequest("/api/auth/logout", "POST");
     window.location.reload();
   };
@@ -1098,6 +1102,16 @@ export function AppShell({ active, onNavigate, stats, children }: AppShellProps)
           </span>
           <span className="flex items-center gap-3">
             <span className="hidden sm:inline">Restricted · Security level 4</span>
+            <button
+              onClick={() => {
+                armLoginGate();
+                window.location.reload();
+              }}
+              className="hidden uppercase tracking-[0.16em] text-muted-foreground/60 underline-offset-4 transition-colors hover:text-primary hover:underline sm:inline"
+              title="Return to the secure sign-in screen"
+            >
+              Sign-in screen
+            </button>
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Link stable

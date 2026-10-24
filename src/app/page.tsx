@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AppShell } from "@/components/erp/app-shell";
 import { ModuleId } from "@/components/erp/nav";
-import { useFetch } from "@/lib/use-fetch";
+import { useFetch, apiRequest } from "@/lib/use-fetch";
 import { Dashboard } from "@/components/erp/modules/dashboard";
 import { ProjectsModule } from "@/components/erp/modules/projects";
 import { ProcurementModule } from "@/components/erp/modules/procurement";
@@ -15,6 +15,11 @@ import { SettingsModule } from "@/components/erp/modules/settings";
 import { LoginWall } from "@/components/auth/login-wall";
 import { CrestMark } from "@/components/brand/cmsys-brand";
 import { BackgroundFX } from "@/components/erp/fx";
+import {
+  DEMO_PIN,
+  isDirectPreviewEnabled,
+  lastUsername,
+} from "@/lib/preview-mode";
 
 interface SessionResponse {
   authenticated: boolean;
@@ -27,7 +32,7 @@ interface SessionResponse {
   } | null;
 }
 
-function BootScreen() {
+function BootScreen({ label = "Establishing secure link…" }: { label?: string }) {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden">
       <BackgroundFX dense />
@@ -49,7 +54,7 @@ function BootScreen() {
           <div className="animate-shimmer h-full w-full rounded-full bg-gradient-to-r from-primary via-[var(--gold)] to-primary" />
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground/70">
-          Establishing secure link…
+          {label}
         </p>
       </div>
     </div>
@@ -58,6 +63,9 @@ function BootScreen() {
 
 export default function Home() {
   const [active, setActive] = useState<ModuleId>("dashboard");
+  // "direct" = silently opening a demo session, "manual" = show the login gate
+  const [gate, setGate] = useState<"checking" | "direct" | "manual">("checking");
+  const bypassAttempted = useRef(false);
 
   const {
     data: sessionData,
@@ -77,9 +85,50 @@ export default function Home() {
     refreshStats();
   };
 
-  if (sessionLoading) return <BootScreen />;
+  /* ── Direct preview: open a session automatically, no login wall ── */
+  const openDirectSession = useCallback(async () => {
+    if (bypassAttempted.current) return;
+    bypassAttempted.current = true;
+
+    if (!isDirectPreviewEnabled()) {
+      setGate("manual");
+      return;
+    }
+
+    setGate("direct");
+    // The session endpoint normally opens a preview session on its own; this
+    // fallback covers an explicit sign-out (session ended, gate re-armed).
+    const res = await apiRequest("/api/auth/login", "POST", {
+      username: lastUsername(),
+      password: DEMO_PIN,
+    });
+    if (res.ok) {
+      refreshSession();
+      refreshStats();
+    } else {
+      // Never leave the preview hanging — fall back to the manual gate.
+      setGate("manual");
+    }
+  }, [refreshSession, refreshStats]);
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    const t = setTimeout(() => {
+      if (sessionData?.authenticated) {
+        setGate("direct");
+        return;
+      }
+      void openDirectSession();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [sessionLoading, sessionData?.authenticated, openDirectSession]);
+
+  if (sessionLoading || (gate === "checking" && !sessionData?.authenticated)) {
+    return <BootScreen label="Opening command deck…" />;
+  }
 
   if (!sessionData?.authenticated) {
+    if (gate === "direct") return <BootScreen label="Signing you in…" />;
     return <LoginWall onLoginSuccess={refreshSession} />;
   }
 

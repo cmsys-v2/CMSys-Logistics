@@ -24,6 +24,7 @@ import { apiRequest } from "@/lib/use-fetch";
 import { CrestMark } from "@/components/brand/cmsys-brand";
 import { BackgroundFX, AnimatedNumber } from "@/components/erp/fx";
 import { cn } from "@/lib/utils";
+import { rememberUsername } from "@/lib/preview-mode";
 
 interface LoginWallProps {
   onLoginSuccess: () => void;
@@ -280,6 +281,7 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
       });
       setLoading(false);
       if (res.ok) {
+        rememberUsername(targetUsername);
         toast({
           title: "Access granted",
           description: `Welcome aboard, ${displayName}.`,

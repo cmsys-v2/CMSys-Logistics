@@ -1450,3 +1450,12 @@ Date: 2026-10-24
 - Fixed two pre-existing type errors (missing `useEffect` import in
   `projects/present-position.tsx`, `"all"` comparison in `stakeholders.tsx`).
 - `npx tsc --noEmit` clean; `next build` passes.
+
+## Direct preview access (no login wall)
+- `/api/auth/session` now issues a silent demo command session when no valid cookie is
+  present, so the deck renders on first paint (flag: `CMSYS_DIRECT_PREVIEW=0` disables).
+- Client fallback in `src/app/page.tsx` posts the demo PIN if the session endpoint
+  declines, then falls back to the login wall rather than hanging.
+- `src/lib/preview-mode.ts`: gate cookie `cmsys_gate` + localStorage; `armLoginGate()`
+  on sign-out or via the footer "Sign-in screen" link restores the secure access panel.
+- Signing in again clears the gate and re-enables direct entry.
