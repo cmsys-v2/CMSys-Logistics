@@ -201,6 +201,15 @@ export function LoginWall({ onLoginSuccess }: LoginWallProps) {
       });
   }, []);
 
+  // Pre-select the first command profile so the PIN is all that is needed
+  useEffect(() => {
+    if (selectedOfficerId) return;
+    const timer = setTimeout(() => {
+      setSelectedOfficerId((current) => current || DEFAULT_OFFICERS[0].id);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [selectedOfficerId]);
+
   const selectedOfficer = officers.find((o) => o.id === selectedOfficerId);
 
   const filteredOfficers = useMemo(() => {
