@@ -20,14 +20,13 @@ import { rawDb } from "@/lib/db";
 
 // 1. Initialize Firebase Client SDK
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCBT1EasmptOV9q3BYe7_142ibc2ShMeOQ",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "ce-web-system.firebaseapp.com",
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://ce-web-system-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "ce-web-system",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "ce-web-system.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "963523128034",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:963523128034:web:3e88af557fdcc8ec154cbb",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-11PRNZR2KY",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDmHdg1FfgR_-4pKJ5z0inI8-BZ21MUtvg",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "ce-admin-panel2025.firebaseapp.com",
+  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://ce-admin-panel2025-default-rtdb.firebaseio.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "ce-admin-panel2025",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "ce-admin-panel2025.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1093761746400",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1093761746400:web:1984fad8019641b2ca5785",
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();

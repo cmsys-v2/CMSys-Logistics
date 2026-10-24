@@ -5,7 +5,7 @@ import { db, rawDb } from "@/lib/db";
  * Pushes all new and updated records to the configured Firebase API Database.
  */
 
-const DEFAULT_FIREBASE_URL = "https://ce-web-system-default-rtdb.asia-southeast1.firebasedatabase.app";
+const DEFAULT_FIREBASE_URL = "https://ce-admin-panel2025-default-rtdb.firebaseio.com";
 
 export async function syncRecordToFirebase(modelName: string, record: any) {
   const firebaseDbUrl = process.env.FIREBASE_DATABASE_URL || 
