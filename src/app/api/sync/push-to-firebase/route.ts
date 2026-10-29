@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-const FIREBASE_PRIMARY_URL = process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-1fb05-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIREBASE_PRIMARY_URL = process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: "ready",
-    bridge: "CMSys Logistics (Port 8000) -> Firebase RTDB (cmsys-v2-1fb05)",
+    bridge: "CMSys Logistics (Port 8000) -> Firebase RTDB (cmsys-v2)",
     version: "2.4.0",
     lastHeartbeat: new Date().toISOString()
   });

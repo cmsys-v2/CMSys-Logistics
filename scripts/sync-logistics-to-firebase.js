@@ -1,7 +1,7 @@
 /**
  * CMSys Logistics -> Firebase RTDB Sync Bridge Worker
  * Synchronizes Store Vouchers (NAV 254 / NAV 255) and Store Inventory deltas
- * between Prisma ORM / MySQL and Cloud RTDB (cmsys-v2-1fb05)
+ * between Prisma ORM / MySQL and Cloud RTDB (cmsys-v2)
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -29,8 +29,8 @@ if (!process.env.DATABASE_URL) {
 
 const prisma = new PrismaClient();
 
-const FIREBASE_PRIMARY_URL = process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-1fb05-default-rtdb.asia-southeast1.firebasedatabase.app";
-const FIREBASE_FALLBACK_URL = "https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIREBASE_PRIMARY_URL = process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIREBASE_FALLBACK_URL = "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 async function pushToFirebase(endpoint, path, data) {
   const url = `${endpoint}/${path}.json`;

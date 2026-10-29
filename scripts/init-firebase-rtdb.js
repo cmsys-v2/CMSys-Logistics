@@ -22,7 +22,7 @@ const dbPath = path.resolve(__dirname, '../db/custom.db');
 process.env.DATABASE_URL = `file:${dbPath}`;
 const prisma = new PrismaClient();
 
-const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL || "https://ce-web-system-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 const MODELS = [
   { name: 'Project', clientName: 'project', path: 'projects' },

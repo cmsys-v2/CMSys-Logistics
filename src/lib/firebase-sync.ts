@@ -24,7 +24,7 @@ const firebaseConfig = {
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "cmsys-v2.firebaseapp.com",
   databaseURL: process.env.FIREBASE_DATABASE_URL || "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "cmsys-v2",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "ce-web-system.firebasestorage.app",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "cmsys-v2.firebasestorage.app",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "963523128034",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:963523128034:web:3e88af557fdcc8ec154cbb",
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-11PRNZR2KY",

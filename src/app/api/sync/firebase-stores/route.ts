@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-const FIREBASE_DB2_URL = "https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
+const FIREBASE_DB2_URL = process.env.FIREBASE_DATABASE_URL
+  ? `${process.env.FIREBASE_DATABASE_URL.replace(/\/$/, "")}/inventory.json`
+  : "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
 
 interface FirebaseInventoryItem {
   category?: string;
@@ -19,7 +21,7 @@ interface FirebaseInventoryItem {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[CMSys Sync] Fetching live inventory from Firebase ncw-ps-operations...");
+    console.log("[CMSys Sync] Fetching live inventory from Firebase cmsys-v2...");
     
     const response = await fetch(FIREBASE_DB2_URL, { cache: "no-store" });
     if (!response.ok) {
@@ -203,7 +205,7 @@ export async function GET() {
     return NextResponse.json({
       syncedCount: count,
       lastSyncedAt: lastItem?.updatedAt || null,
-      firebaseProject: "ncw-ps-operations",
+      firebaseProject: "cmsys-v2",
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

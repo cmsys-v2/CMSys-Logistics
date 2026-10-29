@@ -333,7 +333,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (m: ModuleId) => void })
             <button
               onClick={() => onNavigate("settings")}
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all cursor-pointer"
-              title="Connected to XAMPP MySQL ncw_ps_db and Firebase cmsys-v2-1fb05"
+              title="Connected to XAMPP MySQL ncw_ps_db and Firebase cmsys-v2"
             >
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>CMSys Live</span>

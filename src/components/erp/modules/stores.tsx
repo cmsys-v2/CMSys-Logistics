@@ -309,7 +309,7 @@ export function StoresModule() {
       setSyncingCmsys(true);
       toast({
         title: "Connecting to CMSys v2.2 Firebase...",
-        description: "Synchronizing live inventory & zone stores from ncw-ps-operations...",
+        description: "Synchronizing live inventory & zone stores from cmsys-v2...",
       });
     }
     try {
