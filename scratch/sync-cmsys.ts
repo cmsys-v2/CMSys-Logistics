@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const db = new PrismaClient();
 
-const FIREBASE_DB2_URL = "https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
+const FIREBASE_DB2_URL = "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
 
 interface FirebaseInventoryItem {
   category?: string;
@@ -19,7 +19,7 @@ interface FirebaseInventoryItem {
 }
 
 async function main() {
-  console.log("[CMSys Sync Script] Fetching live inventory from CMSys Firebase DB (ncw-ps-operations)...");
+  console.log("[CMSys Sync Script] Fetching live inventory from CMSys Firebase DB (cmsys-v2)...");
   
   const response = await fetch(FIREBASE_DB2_URL, { cache: "no-store" });
   if (!response.ok) {

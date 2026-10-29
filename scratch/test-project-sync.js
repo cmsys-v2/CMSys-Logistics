@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const db = new PrismaClient();
 
-const FIREBASE_WORK_ORDERS_URL = "https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app/work_orders.json";
+const FIREBASE_WORK_ORDERS_URL = "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app/work_orders.json";
 
 async function testProjectSync() {
   console.log("=== Testing Project Sync between Firebase DB and SQLite ===");
@@ -101,7 +101,7 @@ async function testProjectSync() {
       created_at: new Date(lp.createdAt).getTime(),
     };
 
-    const updateRes = await fetch(`https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app/work_orders/${fbKey}.json`, {
+    const updateRes = await fetch(`https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app/work_orders/${fbKey}.json`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fbItem),
