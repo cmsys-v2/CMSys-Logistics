@@ -37,7 +37,7 @@ export async function GET() {
   // 2. MySQL ncw_ps_db status
   const mysqlStatus = await getMysqlHealth();
 
-  // 3. Firebase RTDB cmsys-v2-1fb05 status
+  // 3. Consolidated Firebase RTDB cmsys-v2 status
   let firebaseStatus: any = { connected: false };
   const fbUrl = getPrimaryFirebaseUrl();
   try {
@@ -50,14 +50,14 @@ export async function GET() {
       connected: res.ok,
       latencyMs: Date.now() - fbStart,
       url: fbUrl,
-      project: "cmsys-v2-1fb05",
+      project: "cmsys-v2",
       httpStatus: res.status,
     };
   } catch (err: any) {
     firebaseStatus = {
       connected: false,
       url: fbUrl,
-      project: "cmsys-v2-1fb05",
+      project: "cmsys-v2",
       error: err.message,
     };
   }
@@ -78,7 +78,7 @@ export async function GET() {
       firebasePrimary: firebaseStatus,
       firebaseOps: {
         url: getOpsFirebaseUrl(),
-        project: "ncw-ps-operations",
+        project: "cmsys-v2",
       },
     },
     timestamp: new Date().toISOString(),

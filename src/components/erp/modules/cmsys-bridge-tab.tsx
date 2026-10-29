@@ -129,7 +129,7 @@ export function CMSysBridgeTab() {
               </CustomBadge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Direct connection with Naval Civil Works suite: XAMPP MySQL (<code>ncw_ps_db</code>) and Unified Firebase Cluster (<code>cmsys-v2-1fb05</code>).
+              Direct connection with Naval Civil Works suite: XAMPP MySQL (<code>ncw_ps_db</code>) and Unified Firebase Cluster (<code>cmsys-v2</code>).
             </p>
           </div>
 
@@ -223,15 +223,15 @@ export function CMSysBridgeTab() {
             <div className="text-[11px] text-muted-foreground space-y-1">
               <div className="flex justify-between">
                 <span>Primary Operations:</span>
-                <span className="font-mono text-foreground font-semibold">cmsys-v2-1fb05</span>
+                <span className="font-mono text-foreground font-semibold">cmsys-v2</span>
               </div>
               <div className="flex justify-between">
-                <span>Tactical Ops:</span>
-                <span className="font-mono text-foreground font-semibold">ncw-ps-operations</span>
+                <span>Architecture:</span>
+                <span className="font-mono text-foreground font-semibold">Unified Backbone</span>
               </div>
               <div className="flex justify-between">
-                <span>Personnel Registry:</span>
-                <span className="font-mono text-foreground font-semibold">ce-admin-panel2025</span>
+                <span>Consolidated Target:</span>
+                <span className="font-mono text-foreground font-semibold">cmsys-v2</span>
               </div>
             </div>
           </div>
