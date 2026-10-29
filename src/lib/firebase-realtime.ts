@@ -3,17 +3,15 @@ import { db, rawDb } from "@/lib/db";
 /**
  * Universal Firebase Realtime & REST API Sync Connector
  * Integrated with the CMSys V2 Cluster:
- * - Primary RTDB: cmsys-v2-1fb05
- * - Tactical Ops: ncw-ps-operations
- * - Master Personnel: ce-admin-panel2025 / cmsys-v2-1fb05/sailors
+ * - Consolidated RTDB: cmsys-v2
  */
 
 const DEFAULT_PRIMARY_FIREBASE_URL =
-  "https://cmsys-v2-1fb05-default-rtdb.asia-southeast1.firebasedatabase.app";
+  "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 const DEFAULT_OPS_FIREBASE_URL =
-  "https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app";
+  "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 const DEFAULT_PERSONNEL_FIREBASE_URL =
-  "https://ce-admin-panel2025.firebaseio.com";
+  "https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 export function getPrimaryFirebaseUrl(): string {
   return (
@@ -60,7 +58,7 @@ export async function syncRecordToFirebase(modelName: string, record: any) {
       body: JSON.stringify({
         ...record,
         _syncedAt: new Date().toISOString(),
-        _cluster: "cmsys-v2-1fb05",
+        _cluster: "cmsys-v2",
       }),
     });
 
